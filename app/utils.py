@@ -12,7 +12,15 @@ class FileDecodeError(ValueError):
     """Raised when an uploaded file cannot be decoded into an image."""
 
 
+def normalize_content_type(content_type: str | None) -> str:
+    """Normalize content type for branching logic."""
+
+    return (content_type or "").lower().strip()
+
+
 def decode_image_bytes(payload: bytes) -> np.ndarray:
+    """Decode encoded image bytes into BGR OpenCV image."""
+
     if not payload:
         raise FileDecodeError("Empty file payload")
 
@@ -24,6 +32,8 @@ def decode_image_bytes(payload: bytes) -> np.ndarray:
 
 
 def encode_png(image: np.ndarray) -> bytes:
+    """Encode BGR image to PNG bytes."""
+
     ok, encoded = cv2.imencode(".png", image)
     if not ok:
         raise FileDecodeError("Failed to encode image")
@@ -31,6 +41,8 @@ def encode_png(image: np.ndarray) -> bytes:
 
 
 def pdf_first_page_to_image(payload: bytes) -> np.ndarray:
+    """Render the first page of a PDF payload into BGR OpenCV image."""
+
     try:
         import pypdfium2 as pdfium  # type: ignore
     except Exception as exc:
@@ -56,7 +68,9 @@ def pdf_first_page_to_image(payload: bytes) -> np.ndarray:
 
 
 def load_upload_image(payload: bytes, content_type: str | None) -> np.ndarray:
-    normalized = (content_type or "").lower().strip()
+    """Decode upload payload into image from supported image/PDF content types."""
+
+    normalized = normalize_content_type(content_type)
 
     if not normalized or normalized in SUPPORTED_IMAGE_TYPES:
         return decode_image_bytes(payload)
@@ -67,5 +81,7 @@ def load_upload_image(payload: bytes, content_type: str | None) -> np.ndarray:
 
 
 def image_dimensions(image: np.ndarray) -> tuple[int, int]:
+    """Return image dimensions as (width, height)."""
+
     height, width = image.shape[:2]
     return width, height
